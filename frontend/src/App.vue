@@ -28,6 +28,9 @@ import HelloWorld from './components/HelloWorld.vue'
   filter: drop-shadow(0 0 2em #42b883aa);
 }
 </style> -->
+
+
+<!--
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
@@ -189,4 +192,13 @@ const formatDate = (dateStr) => {
 
     </div>
   </div>
+</template> -->
+
+
+<script setup>
+// App.vue 仅作为路由容器
+</script>
+
+<template>
+  <router-view></router-view>
 </template>
