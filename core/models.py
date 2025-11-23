@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-# from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model
+from django.conf import settings
 import uuid
 
 class User(AbstractUser):
@@ -79,6 +80,8 @@ class Image(models.Model):
     # 这是一个列表，既包含 AI 分析的标签，也包含用户手动添加的自定义标签
     tags = models.JSONField(default=list, blank=True) 
     
+    # --- 新增：软删除标记 ---
+    deleted_at = models.DateTimeField(null=True, blank=True, db_index=True) # 加上索引加快查询
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
