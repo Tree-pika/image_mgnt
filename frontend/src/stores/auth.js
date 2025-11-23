@@ -14,7 +14,7 @@ export const useAuthStore = defineStore('auth', {
 actions: {
     async login(username, password) {
       try {
-        const response = await axios.post('/api/auth/login', { username, password })
+        const response = await axios.post('/auth/login', { username, password })
         this.user = response.data
         this.isAuthenticated = true
         return true
@@ -25,7 +25,7 @@ actions: {
     },
     async register(username, email, password) {
       try {
-        await axios.post('/api/auth/register', { username, email, password })
+        await axios.post('/auth/register', { username, email, password })
         return true
       } catch (error) {
         // 🔍 修复逻辑：先判断有没有 response

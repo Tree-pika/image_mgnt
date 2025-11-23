@@ -3,11 +3,10 @@ from ninja.files import UploadedFile
 from django.contrib.auth import authenticate, login, logout
 # from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import get_user_model
-from django.shortcuts import get_object_or_404
+# from django.shortcuts import get_object_or_404
 from django.conf import settings
 from .models import Image
 from .schemas import ImageOut, UserSchema # 导入刚才定义的 Schema
-import os
 import exifread
 from PIL import Image as PilImage
 from datetime import datetime
@@ -18,6 +17,9 @@ from django.http import HttpRequest
 from .models import User
 from django.db import IntegrityError
 from pydantic import EmailStr
+
+from typing import List
+from django.db.models import Q
 
 # 实例化 API 对象
 api = NinjaAPI()
@@ -95,7 +97,7 @@ def me(request: HttpRequest):
         return 200, request.user
     return 403, {"message": "未登录"}
 
-# --- 以下是图片上传逻辑 ---
+# --- 图片上传逻辑 ---
 
 def parse_exif_date(date_str):
     """辅助函数：将 EXIF 时间字符串 '2023:10:01 12:00:00' 转为 datetime 对象"""
@@ -106,49 +108,66 @@ def parse_exif_date(date_str):
     except ValueError:
         return None
 
-@router.post("/upload", response=ImageOut, auth=None) # 暂时 auth=None 方便测试，之后需开启认证
-def upload_image(request, file: UploadedFile = File(...)):
-    # 1. 只有登录用户才能上传 (如果是 Session 认证，request.user.is_authenticated)
-    # 这里的 request.user 依赖于你在 django settings 中配置了 Ninja 的 SessionAuth
-    if not request.user.is_authenticated:
-       # 为了方便目前测试，如果未登录，我们暂时把图挂在第一个用户头上
-       # 正式上线请改为: return api.create_response(request, {"detail": "Unauthorized"}, status=401)
-       user = User.objects.first()
-    else:
-       user = request.user
+# 1. 获取图片列表
+@router.get("/images", response=List[ImageOut])
+def list_images(request, search: str = None, tag: str = None):    
+    # 允许查看所有图片
+    # qs = Image.objects.all() 
+    
+    # 只能看自己上传的照片：
+    if not request.user.is_authenticated: 
+        return []
+    qs = Image.objects.filter(owner=request.user)
+    
+    # 搜索逻辑
+    if search:
+        qs = qs.filter(Q(title__icontains=search) | Q(location__icontains=search))
+    
+    if tag:
+        qs = qs.filter(tags__contains=tag)
+        
+    return qs.order_by('-created_at')
 
-    # 2. 读取 EXIF 信息
-    # file.file 是原本的 Python file object
+# 2. 上传图片
+@router.post("/upload", response=ImageOut, auth=None) 
+def upload_image(request, file: UploadedFile = File(...)):
+    # 严格检查，不再使用 fallback
+    if not request.user.is_authenticated:
+       from ninja.errors import HttpError
+       raise HttpError(401, "请先登录")
+    
+    user = request.user
+
+    # 读取 EXIF
     tags = exifread.process_file(file.file)
-    file.file.seek(0) # 读取完后指针归位，否则 Pillow 读不到
+    file.file.seek(0) 
 
     exif_data = {}
     shot_time = None
     
-    # 提取拍摄时间
     if 'EXIF DateTimeOriginal' in tags:
         date_str = str(tags['EXIF DateTimeOriginal'])
         shot_time = parse_exif_date(date_str)
         exif_data['DateTimeOriginal'] = date_str
     
-    # 提取相机型号等（可选）
     if 'Image Model' in tags:
         exif_data['Model'] = str(tags['Image Model'])
 
-    # 3. 使用 Pillow 处理图片（获取宽高、生成缩略图）
+    # Pillow 处理
     pil_img = PilImage.open(file.file)
     width, height = pil_img.size
     
-    # 生成缩略图 (最大 400x400)
     thumb_io = BytesIO()
+    # 转换为 RGB 防止 PNG 透明背景变黑
+    if pil_img.mode in ('RGBA', 'P'):
+        pil_img = pil_img.convert('RGB')
+        
     pil_img.thumbnail((400, 400))
-    # 保存为 JPEG 格式的缩略图
     pil_img.save(thumb_io, format='JPEG', quality=80)
     
-    # 构造缩略图文件名
     thumb_name = f"thumb_{file.name}"
 
-    # 4. 保存到数据库
+    # 保存数据库
     image_obj = Image.objects.create(
         owner=user,
         file=file,
@@ -158,10 +177,9 @@ def upload_image(request, file: UploadedFile = File(...)):
         size=file.size,
         shot_time=shot_time,
         exif_data=exif_data,
-        tags=[] # 初始为空列表
+        tags=[] 
     )
     
-    # 保存缩略图文件
     image_obj.thumbnail.save(thumb_name, ContentFile(thumb_io.getvalue()), save=True)
 
     return image_obj

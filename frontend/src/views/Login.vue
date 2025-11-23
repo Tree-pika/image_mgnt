@@ -25,7 +25,7 @@
               v-model="form.password" 
               type="password" 
               class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" 
-              placeholder="••••••••"
+              placeholder="请输入密码"
               required
             >
           </div>

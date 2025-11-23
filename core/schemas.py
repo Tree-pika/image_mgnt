@@ -16,6 +16,7 @@ class ImageOut(Schema):
     shot_time: Optional[datetime]
     width: int
     height: int
+    size: int
     tags: List[str] # 标签列表
     owner: UserSchema
     created_at: datetime

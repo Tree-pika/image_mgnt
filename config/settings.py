@@ -42,9 +42,9 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',# 新增
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',# 新增
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -137,6 +137,19 @@ CORS_ALLOWED_ORIGINS = [
 ]
 # 允许携带 Cookie/凭证
 CORS_ALLOW_CREDENTIALS = True
+
+# CSRF 信任源
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+# Session 配置
+SESSION_COOKIE_SAMESITE = 'Lax' # 或者 'None' (如果用 HTTPS)
+SESSION_COOKIE_SECURE = False   # 开发环境 False, 生产环境 True
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SECURE = False
+
 # 媒体文件配置
 import os
 MEDIA_URL = '/media/'
