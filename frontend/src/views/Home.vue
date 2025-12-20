@@ -18,7 +18,8 @@ import {
   CheckCircleIcon, PlayCircleIcon, Square2StackIcon,
   TrashIcon, TagIcon, ScissorsIcon, CheckIcon,
   ArrowPathIcon, ExclamationTriangleIcon, PlusIcon, 
-  ArrowUturnLeftIcon, AdjustmentsHorizontalIcon // 新增图标
+  ArrowUturnLeftIcon, AdjustmentsHorizontalIcon,
+  SparklesIcon // <--- AI:新增魔法棒图标
 } from '@heroicons/vue/24/outline'
 import { CheckCircleIcon as CheckCircleIconSolid } from '@heroicons/vue/24/solid'
 
@@ -43,7 +44,7 @@ const selectedImageIds = ref(new Set())
 const showSlideshow = ref(false)
 const slideshowList = ref([])
 
-// Step 8: 编辑增强状态
+// 编辑状态
 const newTagInput = ref('')
 const isCropping = ref(false)
 const cropperInstance = ref(null)
@@ -58,7 +59,7 @@ const editParams = ref({
   saturation: 1.0
 })
 
-// Step 9: 分页状态
+// 分页状态
 const pagination = ref({
   page: 1,
   size: 12,
@@ -68,6 +69,9 @@ const pagination = ref({
 
 const isTrashMode = ref(false)
 const activeTags = ref([]) 
+
+// Step 8: AI 分析状态
+const isAnalyzing = ref(false)
 
 // --- 获取图片 (支持分页) ---
 const fetchImages = async (page = 1) => {
@@ -107,7 +111,6 @@ const fetchImages = async (page = 1) => {
 const changePage = (newPage) => {
   if (newPage < 1 || newPage > pagination.value.pages) return
   fetchImages(newPage)
-  // 滚动到顶部
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
@@ -248,12 +251,26 @@ const quickAddTag = async (img) => {
   } catch(e) { alert("失败") }
 }
 
-// --- 编辑功能增强 (Task 3) ---
+// --- Step 8: AI 智能分析 ---
+const analyzeImage = async () => {
+  if (isAnalyzing.value) return
+  isAnalyzing.value = true
+  try {
+    const res = await axios.post(`/images/${selectedImage.value.id}/analyze`)
+    selectedImage.value = res.data
+    const idx = images.value.findIndex(i => i.id === selectedImage.value.id)
+    if (idx !== -1) images.value[idx] = res.data
+  } catch (e) {
+    alert("AI 分析失败，请检查后端日志")
+  } finally {
+    isAnalyzing.value = false
+  }
+}
+
+// --- 编辑功能增强 ---
 const startCrop = () => { 
   isCropping.value = true;
-  // 重置参数
   editParams.value = { rotate: 0, brightness: 1.0, contrast: 1.0, saturation: 1.0 }
-  
   nextTick(() => { 
     if (imageRef.value) cropperInstance.value = new Cropper(imageRef.value, { 
       viewMode: 1, background: false, autoCropArea: 0.8, rotatable: true 
@@ -264,7 +281,6 @@ const startCrop = () => {
 const rotateImage = () => {
   if (cropperInstance.value) {
     cropperInstance.value.rotate(90)
-    // 更新参数发给后端
     editParams.value.rotate = (editParams.value.rotate + 90) % 360
   }
 }
@@ -273,67 +289,26 @@ const saveCrop = async () => {
   if (!cropperInstance.value) return; 
   savingCrop.value = true; 
   const data = cropperInstance.value.getData(); 
-  
   try { 
     const payload = {
-      x: Math.round(data.x), 
-      y: Math.round(data.y), 
-      width: Math.round(data.width), 
-      height: Math.round(data.height),
-      // 传递色调参数
+      x: Math.round(data.x), y: Math.round(data.y), 
+      width: Math.round(data.width), height: Math.round(data.height),
       rotate: editParams.value.rotate,
       brightness: parseFloat(editParams.value.brightness),
       contrast: parseFloat(editParams.value.contrast),
       saturation: parseFloat(editParams.value.saturation)
     }
-
     const res = await axios.post(`/images/${selectedImage.value.id}/crop`, payload); 
-    
     cropperInstance.value.destroy(); 
     cropperInstance.value = null; 
     isCropping.value = false; 
-    
     selectedImage.value = res.data
     await fetchImages(pagination.value.page); 
-    
-  } catch (e) { 
-    alert("保存失败") 
-  } finally { 
-    savingCrop.value = false 
-  } 
+  } catch (e) { alert("保存失败") } finally { savingCrop.value = false } 
 }
 const cancelCrop = () => { if (cropperInstance.value) cropperInstance.value.destroy(); isCropping.value = false; }
 
-// CSS Filter 预览样式
-const previewStyle = computed(() => {
-  if (!isCropping.value) return {}
-  return {
-    filter: `brightness(${editParams.value.brightness}) contrast(${editParams.value.contrast}) saturate(${editParams.value.saturation})`
-  }
-})
-
-// 监听滤镜参数变化，实时应用到 Cropper 生成的 DOM 元素上
-// watch(editParams, (newVal) => {
-//   if (!cropperInstance.value) return
-  
-//   // 构造滤镜字符串
-//   const filterVal = `brightness(${newVal.brightness}) contrast(${newVal.contrast}) saturate(${newVal.saturation})`
-  
-//   // 1. 获取 Cropper 的容器
-//   const container = cropperInstance.value.getContainer()
-  
-//   // 2. 找到容器内所有的 img 元素 (Cropper 会生成两个：一个底图，一个裁剪框内的预览图)
-//   const images = container.querySelectorAll('img')
-  
-//   // 3. 强制应用 CSS 滤镜
-//   images.forEach(img => {
-//     img.style.filter = filterVal
-//     // 保证变换过渡平滑
-//     img.style.transition = 'filter 0.1s' 
-//   })
-// }, { deep: true })
-
-// 将滑块数值转换为 CSS 变量对象
+// CSS 变量计算
 const filterVars = computed(() => {
   return {
     '--brightness': editParams.value.brightness,
@@ -341,6 +316,7 @@ const filterVars = computed(() => {
     '--saturation': editParams.value.saturation,
   }
 })
+
 const formatDate = (d) => d ? new Date(d).toLocaleDateString() : '未知日期'
 </script>
 
@@ -427,23 +403,9 @@ const formatDate = (d) => d ? new Date(d).toLocaleDateString() : '未知日期'
       </div>
 
       <div v-if="pagination.pages > 1" class="mt-12 flex justify-center items-center gap-4">
-        <button 
-          @click="changePage(pagination.page - 1)" 
-          :disabled="pagination.page === 1"
-          class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          上一页
-        </button>
-        <span class="text-sm text-gray-600">
-          第 <span class="font-bold text-gray-900">{{ pagination.page }}</span> / {{ pagination.pages }} 页
-        </span>
-        <button 
-          @click="changePage(pagination.page + 1)" 
-          :disabled="pagination.page === pagination.pages"
-          class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          下一页
-        </button>
+        <button @click="changePage(pagination.page - 1)" :disabled="pagination.page === 1" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">上一页</button>
+        <span class="text-sm text-gray-600">第 <span class="font-bold text-gray-900">{{ pagination.page }}</span> / {{ pagination.pages }} 页</span>
+        <button @click="changePage(pagination.page + 1)" :disabled="pagination.page === pagination.pages" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">下一页</button>
       </div>
     </main>
 
@@ -469,29 +431,19 @@ const formatDate = (d) => d ? new Date(d).toLocaleDateString() : '未知日期'
       <template v-if="!isCropping && images.length > 1"><button @click.stop="prevImage" class="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors z-[70]"><ChevronLeftIcon class="w-8 h-8" /></button><button @click.stop="nextImage" class="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors z-[70]"><ChevronRightIcon class="w-8 h-8" /></button></template>
       <div class="flex flex-col md:flex-row w-full h-full max-w-7xl mx-auto p-4 gap-4" @click.stop>
         
-        <div class="flex-1 flex items-center justify-center relative overflow-hidden bg-black/50 rounded-lg"
-        :style="filterVars"
+        <div 
+          class="flex-1 flex items-center justify-center relative overflow-hidden bg-black/50 rounded-lg"
+          :style="filterVars"
         >
           <img ref="imageRef" :key="selectedImage.id + (isCropping ? '-crop' : '')" :src="`http://127.0.0.1:8000${selectedImage.file}?t=${new Date().getTime()}`" class="max-w-full max-h-[80vh] object-contain shadow-2xl transition-opacity duration-300" 
-               :class="{'opacity-100': !savingCrop, 'opacity-50': savingCrop}"
-               :style="previewStyle" />
+               :class="{'opacity-100': !savingCrop, 'opacity-50': savingCrop}" />
           
           <div v-if="isCropping" class="absolute bottom-6 z-[80] flex flex-col items-center gap-4 w-full px-4">
              <div class="bg-black/60 backdrop-blur-md p-4 rounded-xl flex gap-6 text-white text-xs w-full max-w-lg">
-                <div class="flex-1">
-                   <div class="flex justify-between mb-1"><span>亮度</span><span>{{ editParams.brightness }}</span></div>
-                   <input type="range" min="0" max="2" step="0.1" v-model="editParams.brightness" class="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer">
-                </div>
-                <div class="flex-1">
-                   <div class="flex justify-between mb-1"><span>对比度</span><span>{{ editParams.contrast }}</span></div>
-                   <input type="range" min="0" max="2" step="0.1" v-model="editParams.contrast" class="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer">
-                </div>
-                <div class="flex-1">
-                   <div class="flex justify-between mb-1"><span>饱和度</span><span>{{ editParams.saturation }}</span></div>
-                   <input type="range" min="0" max="2" step="0.1" v-model="editParams.saturation" class="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer">
-                </div>
+                <div class="flex-1"><div class="flex justify-between mb-1"><span>亮度</span><span>{{ editParams.brightness }}</span></div><input type="range" min="0" max="2" step="0.1" v-model="editParams.brightness" class="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer"></div>
+                <div class="flex-1"><div class="flex justify-between mb-1"><span>对比度</span><span>{{ editParams.contrast }}</span></div><input type="range" min="0" max="2" step="0.1" v-model="editParams.contrast" class="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer"></div>
+                <div class="flex-1"><div class="flex justify-between mb-1"><span>饱和度</span><span>{{ editParams.saturation }}</span></div><input type="range" min="0" max="2" step="0.1" v-model="editParams.saturation" class="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer"></div>
              </div>
-
              <div class="flex gap-4">
                <button @click="rotateImage" class="bg-white text-gray-800 px-4 py-2 rounded-full font-bold shadow-lg hover:bg-gray-100 flex items-center gap-2"><ArrowUturnLeftIcon class="w-5 h-5" /> 旋转</button>
                <button @click="saveCrop" class="bg-green-600 text-white px-6 py-2 rounded-full font-bold shadow-lg hover:bg-green-700 flex items-center gap-2"><CheckIcon class="w-5 h-5" /> 另存为新图</button>
@@ -502,7 +454,26 @@ const formatDate = (d) => d ? new Date(d).toLocaleDateString() : '未知日期'
 
         <div class="w-full md:w-80 bg-gray-900/80 text-white p-6 rounded-2xl backdrop-blur-md h-fit md:self-center border border-white/10 flex flex-col gap-6">
           <div><h2 class="text-lg font-bold mb-2 break-words">{{ selectedImage.title }}</h2><div class="space-y-1 text-sm text-gray-400"><p>日期: {{ formatDate(selectedImage.shot_time) }}</p><p>尺寸: {{ selectedImage.width }} x {{ selectedImage.height }}</p><p>大小: {{ (selectedImage.size / 1024).toFixed(1) }} KB</p><p v-if="selectedImage.deleted_at" class="text-red-400 font-bold mt-2">已在回收站</p></div></div>
-          <div><div class="flex items-center gap-2 mb-2 text-sm font-bold text-gray-300"><TagIcon class="w-4 h-4" /> 标签</div><div class="flex flex-wrap gap-2 mb-3"><span v-for="tag in selectedImage.tags" :key="tag" class="px-2 py-1 bg-blue-600/30 border border-blue-500/30 text-blue-200 text-xs rounded flex items-center gap-1 group">#{{ tag }}<button v-if="!isTrashMode" @click="removeTag(tag)" class="hover:text-white text-blue-300/50"><XMarkIcon class="w-3 h-3" /></button></span><span v-if="selectedImage.tags.length === 0" class="text-xs text-gray-500 italic">暂无标签</span></div><div v-if="!isTrashMode" class="flex gap-2"><input v-model="newTagInput" @keyup.enter="addTag(null)" type="text" placeholder="输入标签按回车..." class="bg-black/30 border border-white/10 rounded px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500 w-full" /><button @click="addTag(null)" class="bg-blue-600 hover:bg-blue-700 px-3 rounded text-sm">+</button></div></div>
+          
+          <div>
+             <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2 text-sm font-bold text-gray-300">
+                  <TagIcon class="w-4 h-4" /> 标签
+                </div>
+                <button 
+                  v-if="!isTrashMode"
+                  @click="analyzeImage" 
+                  :disabled="isAnalyzing"
+                  class="text-xs flex items-center gap-1 px-2 py-1 rounded bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-500 hover:to-blue-500 disabled:opacity-50 transition-all"
+                  title="AI 自动识别图片内容"
+                >
+                  <SparklesIcon class="w-3 h-3" :class="{'animate-spin': isAnalyzing}" />
+                  {{ isAnalyzing ? '分析中...' : 'AI 识别' }}
+                </button>
+             </div>
+             <div class="flex flex-wrap gap-2 mb-3"><span v-for="tag in selectedImage.tags" :key="tag" class="px-2 py-1 bg-blue-600/30 border border-blue-500/30 text-blue-200 text-xs rounded flex items-center gap-1 group">#{{ tag }}<button v-if="!isTrashMode" @click="removeTag(tag)" class="hover:text-white text-blue-300/50"><XMarkIcon class="w-3 h-3" /></button></span><span v-if="selectedImage.tags.length === 0" class="text-xs text-gray-500 italic">暂无标签</span></div><div v-if="!isTrashMode" class="flex gap-2"><input v-model="newTagInput" @keyup.enter="addTag(null)" type="text" placeholder="输入标签按回车..." class="bg-black/30 border border-white/10 rounded px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500 w-full" /><button @click="addTag(null)" class="bg-blue-600 hover:bg-blue-700 px-3 rounded text-sm">+</button></div>
+          </div>
+          
           <div class="pt-4 border-t border-white/10 flex flex-col gap-3"><template v-if="!isTrashMode"><button v-if="!isCropping" @click="startCrop" class="w-full py-2 bg-gray-700 hover:bg-gray-600 rounded-lg flex items-center justify-center gap-2 transition-colors"><ScissorsIcon class="w-4 h-4" /> 编辑 / 裁剪</button><button @click="deleteImage" class="w-full py-2 bg-red-600/20 hover:bg-red-600/40 text-red-300 hover:text-red-100 rounded-lg flex items-center justify-center gap-2 transition-colors border border-red-500/20"><TrashIcon class="w-4 h-4" /> 移入回收站</button></template><template v-else><button @click="restoreImage(null)" class="w-full py-2 bg-green-600/20 hover:bg-green-600/40 text-green-300 hover:text-green-100 rounded-lg flex items-center justify-center gap-2 transition-colors border border-green-500/20"><ArrowPathIcon class="w-4 h-4" /> 还原图片</button><button @click="hardDeleteImage(null)" class="w-full py-2 bg-red-800/40 hover:bg-red-700 text-red-200 hover:text-white rounded-lg flex items-center justify-center gap-2 transition-colors border border-red-500/40"><TrashIcon class="w-4 h-4" /> 永久删除</button></template></div>
         </div>
       </div>
@@ -525,6 +496,6 @@ const formatDate = (d) => d ? new Date(d).toLocaleDateString() : '未知日期'
 /* 利用 CSS 变量强制应用滤镜，利用 GPU 加速，零卡顿 */
 .cropper-container img {
   filter: brightness(var(--brightness)) contrast(var(--contrast)) saturate(var(--saturation)) !important;
-  transition: filter 0.1s linear; /* 让变化丝般顺滑 */
+  transition: filter 0.1s linear; 
 }
 </style>

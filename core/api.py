@@ -22,6 +22,8 @@ from django.db import IntegrityError
 from pydantic import EmailStr
 from typing import List
 import math
+from .ai import analyze_image
+
 
 # 实例化 API 对象
 api = NinjaAPI()
@@ -350,3 +352,33 @@ def crop_image(request, image_id: UUID, data: CropIn):
         raise HttpError(500, f"编辑失败: {str(e)}")
 
 api.add_router("", router)
+
+# 10. AI 智能分析接口
+@router.post("/images/{image_id}/analyze", response=ImageOut, auth=None)
+def ai_analyze_image(request, image_id: UUID):
+    if not request.user.is_authenticated:
+        from ninja.errors import HttpError
+        raise HttpError(401, "请先登录")
+
+    img = get_object_or_404(Image, id=image_id, owner=request.user)
+    
+    # 打开文件流
+    img.file.open()
+    
+    # 调用 AI 分析
+    # 注意：首次调用会触发模型下载，速度较慢
+    detected_tags = analyze_image(img.file)
+    
+    # 合并标签 (去重)
+    current_tags = set(img.tags)
+    added_count = 0
+    for tag in detected_tags:
+        if tag not in current_tags:
+            current_tags.add(tag)
+            added_count += 1
+            
+    if added_count > 0:
+        img.tags = list(current_tags)
+        img.save()
+        
+    return img
