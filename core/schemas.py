@@ -24,7 +24,7 @@ class ImageOut(Schema):
     owner: UserSchema
     created_at: datetime
 
-# --- 新增：分页响应结构 ---
+# --- 分页响应结构 ---
 class PaginatedImageResponse(Schema):
     items: List[ImageOut]
     total: int
@@ -36,16 +36,16 @@ class PaginatedImageResponse(Schema):
 class TagIn(Schema):
     tag: str
 
-# --- 更新：裁剪与色调参数 ---
+# --- 裁剪与色调参数 ---
 class CropIn(Schema):
     x: int
     y: int
     width: int
     height: int
-    rotate: int = 0        # 新增：旋转角度
-    brightness: float = 1.0 # 新增：亮度 (0.0 - 2.0)
-    contrast: float = 1.0   # 新增：对比度
-    saturation: float = 1.0 # 新增：饱和度
+    rotate: int = 0        # 旋转角度
+    brightness: float = 1.0 # 亮度 (0.0 - 2.0)
+    contrast: float = 1.0   # 对比度
+    saturation: float = 1.0 # 饱和度
 
 # --- 批量删除 ---
 class BulkDeleteIn(Schema):

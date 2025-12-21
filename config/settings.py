@@ -37,14 +37,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'corsheaders', # 新增
-    'core',        # 新增
+    'corsheaders', 
+    'core',        
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',# 新增
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -82,9 +82,9 @@ DATABASES = {
         'NAME': 'imagedb',       # docker run 时设置的库名
         # 'NAME': BASE_DIR / 'db.sqlite3',
         'USER': 'root',
-        'PASSWORD': 'password',  # 刚才 docker run 时设置的密码
+        'PASSWORD': 'password',  # docker run 设置的密码
         'HOST': '127.0.0.1',     # 指向本地 Docker
-        'PORT': '3307',          # linux中装的MySQL连接到PC的3307 port
+        'PORT': '3307',          # linux中的MySQL连接到PC的3307 port
     }
 }
 
@@ -145,7 +145,7 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 # Session 配置
-SESSION_COOKIE_SAMESITE = 'Lax' # 或者 'None' (如果用 HTTPS)
+SESSION_COOKIE_SAMESITE = 'Lax' 
 SESSION_COOKIE_SECURE = False   # 开发环境 False, 生产环境 True
 CSRF_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SECURE = False

@@ -30,7 +30,7 @@ def analyze_image(image_file):
         classifier = get_classifier()
         results = classifier(image, top_k=3) # 取置信度最高的前3个结果
         
-        # 提取标签 (results 格式: [{'label': 'seashore', 'score': 0.9}, ...])
+        # 提取标签
         tags = [res['label'].split(',')[0].lower() for res in results]
         
         return tags

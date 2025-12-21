@@ -18,11 +18,11 @@ from django.contrib import admin
 from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
-from core.api import api  # <--- 导入写的 api 实例
+from core.api import api  
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', api.urls),   # <--- 挂载 Ninja API 到 /api/ 路径下
+    path('api/', api.urls),   
 ]
 
 # 配置媒体文件服务（开发模式下查看上传的图片）

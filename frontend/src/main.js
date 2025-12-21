@@ -9,7 +9,7 @@ import axios from 'axios'
 // --- 动态配置后端地址 ---
 // 逻辑：如果浏览器访问的是 localhost，就请求 http://localhost:8000
 //      如果浏览器访问的是 127.0.0.1，就请求 http://127.0.0.1:8000
-// 这样可以避免跨域造成的 Cookie 丢失问题
+// 避免跨域造成的 Cookie 丢失问题
 const hostname = window.location.hostname; 
 const apiBaseURL = `http://${hostname}:8000/api`;
 
@@ -23,6 +23,6 @@ axios.defaults.xsrfCookieName = 'csrftoken'
 axios.defaults.xsrfHeaderName = 'X-CSRFToken'
 const app = createApp(App)
 
-app.use(createPinia()) // 使用 Pinia
+app.use(createPinia()) 
 app.use(router)
 app.mount('#app')

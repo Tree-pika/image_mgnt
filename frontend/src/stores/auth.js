@@ -1,9 +1,9 @@
 import { defineStore } from 'pinia'
 import axios from 'axios'
 
-// 设置后端地址 (开发环境)
+// 设置后端地址
 axios.defaults.baseURL = 'http://127.0.0.1:8000'
-// 允许跨域携带 Cookie (关键!)
+// 允许跨域携带 Cookie
 axios.defaults.withCredentials = true
 
 export const useAuthStore = defineStore('auth', {
@@ -28,12 +28,11 @@ actions: {
         await axios.post('/auth/register', { username, email, password })
         return true
       } catch (error) {
-        // 🔍 修复逻辑：先判断有没有 response
+        //先判断有没有 response
         if (error.response && error.response.data) {
-            // 服务器返回了错误包 (比如 "用户名已存在")
             throw error.response.data 
         } else if (error.request) {
-            // 请求发了，但没收到回应 (通常是后端没开，或 CORS 跨域失败)
+            // 请求发了，但没收到回应
             throw new Error("服务器无响应，请检查后端是否启动")
         } else {
             // 其他代码错误

@@ -60,27 +60,25 @@ class Image(models.Model):
     """图片主表"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='images')
-    # upload_to 会根据日期自动分文件夹存储，例如 uploads/2025/11/
+    # upload_to 根据日期自动分文件夹存储
     file = models.ImageField(upload_to='uploads/%Y/%m/')
-    thumbnail = models.ImageField(upload_to='thumbnails/%Y/%m/', blank=True, null=True) # 新增缩略图字段
+    thumbnail = models.ImageField(upload_to='thumbnails/%Y/%m/', blank=True, null=True) # 缩略图
     title = models.CharField(max_length=100, blank=True)
     
-    # EXIF 信息 (功能 3)
     # 存储完整的原始 EXIF 数据，方便后续查看详情
     exif_data = models.JSONField(default=dict, blank=True) 
     
-    # 关键元数据索引 (用于快速筛选)
+    # 关键元数据索引 (快速筛选)
     shot_time = models.DateTimeField(null=True, blank=True) # 拍摄时间
-    location = models.CharField(max_length=255, blank=True) # 拍摄地点(预留)
+    location = models.CharField(max_length=255, blank=True) # 拍摄地点
     width = models.IntegerField(default=0)
     height = models.IntegerField(default=0)
     size = models.IntegerField(default=0) # 文件大小(字节)
 
-    # 标签系统 (功能 4: 自定义标签, 增强功能 1: AI标签)
-    # 这是一个列表，既包含 AI 分析的标签，也包含用户手动添加的自定义标签
+    # 标签列表，既包含 AI 分析的标签，也包含用户手动添加的自定义标签
     tags = models.JSONField(default=list, blank=True) 
     
-    # --- 新增：软删除标记 ---
+    # --- 软删除标记 ---
     deleted_at = models.DateTimeField(null=True, blank=True, db_index=True) # 加上索引加快查询
     created_at = models.DateTimeField(auto_now_add=True)
 

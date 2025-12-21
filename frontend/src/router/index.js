@@ -28,7 +28,7 @@ const router = createRouter({
   ]
 })
 
-// 路由守卫：检查用户是否已登录
+// 检查用户是否已登录
 router.beforeEach(async (to, from, next) => {
   const auth = useAuthStore()
   
