@@ -25,7 +25,8 @@ SECRET_KEY = 'django-insecure-^irs+tuh#d6)6zxm=mu+ykoea6(8mno8np)#sh@a!x=boz+d&e
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+# 允许所有主机访问 
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -83,8 +84,10 @@ DATABASES = {
         # 'NAME': BASE_DIR / 'db.sqlite3',
         'USER': 'root',
         'PASSWORD': 'password',  # docker run 设置的密码
-        'HOST': '127.0.0.1',     # 指向本地 Docker
-        'PORT': '3307',          # linux中的MySQL连接到PC的3307 port
+        # 'HOST': '127.0.0.1',     # 指向本地 Docker
+        'HOST': 'db',
+        # 'PORT': '3307',          # linux中的MySQL连接到PC的3307 port
+        'PORT': '3306',            # 容器间通信MySQL用的是内部端口 3306
     }
 }
 
@@ -134,6 +137,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost",      # 确保允许 80 端口跨域（虽然 Nginx 同源代理时这个不关键，但加上保险）
 ]
 # 允许携带 Cookie/凭证
 CORS_ALLOW_CREDENTIALS = True
@@ -142,6 +146,7 @@ CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost",  #
 ]
 
 # Session 配置

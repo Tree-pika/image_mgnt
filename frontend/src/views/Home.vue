@@ -166,7 +166,7 @@ const startSlideshow = () => {
   showSlideshow.value = true
 }
 const handleImageClick = (img) => { isSelectionMode.value ? toggleSelection(img.id) : openLightbox(img) }
-const handleImageError = (e, img) => { if (e.target.src !== `http://127.0.0.1:8000${img.file}`) e.target.src = `http://127.0.0.1:8000${img.file}` }
+const handleImageError = (e, img) => { if (e.target.src !== `${img.file}`) e.target.src = `${img.file}` }
 const toggleTagFilter = (tag) => { if (activeTags.value.includes(tag)) activeTags.value = activeTags.value.filter(t => t !== tag); else activeTags.value.push(tag) }
 
 // --- 批量操作 ---
@@ -392,7 +392,7 @@ const formatDate = (d) => d ? new Date(d).toLocaleDateString() : '未知日期'
               class="group relative bg-white rounded-2xl shadow-sm overflow-hidden aspect-w-1 aspect-h-1 border border-gray-100 transition-all cursor-pointer"
               :class="{'ring-4 ring-blue-500 ring-offset-2': isSelectionMode && selectedImageIds.has(img.id)}"
               @click="handleImageClick(img)">
-            <img :src="`http://127.0.0.1:8000${img.thumbnail || img.file}`" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 bg-gray-100" @error="(e) => handleImageError(e, img)"/>
+            <img :src="`${img.thumbnail || img.file}`" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 bg-gray-100" @error="(e) => handleImageError(e, img)"/>
             
             <div v-if="!isSelectionMode" class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4 pointer-events-none">
                 <p class="text-white text-sm font-medium truncate">{{ img.title }}</p>
@@ -425,7 +425,7 @@ const formatDate = (d) => d ? new Date(d).toLocaleDateString() : '未知日期'
         <div class="relative bg-white w-full max-w-xl rounded-2xl shadow-2xl p-6 transition-all transform">
             <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">上传图片</h3><button @click="closeUpload" class="p-1 hover:bg-gray-100 rounded-full"><XMarkIcon class="w-6 h-6 text-gray-500"/></button></div>
             <div v-if="!uploadResult" class="border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-colors" :class="isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-400'" @click="triggerFileSelect" @dragover.prevent="onDragOver" @dragleave.prevent="onDragLeave" @drop.prevent="onDrop"><input type="file" ref="fileInput" class="hidden" accept="image/*" @change="handleFileChange" /><div v-if="uploading" class="animate-pulse text-blue-600 font-bold">正在上传...</div><div v-else><CloudArrowUpIcon class="w-12 h-12 text-blue-500 mx-auto mb-2"/><p class="text-gray-600">点击或拖拽上传</p></div></div>
-            <div v-else class="bg-green-50 p-4 rounded-xl flex items-center gap-4"><img :src="`http://127.0.0.1:8000${uploadResult.file}`" class="w-16 h-16 object-cover rounded bg-gray-200"><div><p class="text-green-800 font-bold">上传成功</p><button @click="uploadResult=null" class="text-sm text-blue-600 underline mt-1">继续上传</button></div></div>
+            <div v-else class="bg-green-50 p-4 rounded-xl flex items-center gap-4"><img :src="`${uploadResult.file}`" class="w-16 h-16 object-cover rounded bg-gray-200"><div><p class="text-green-800 font-bold">上传成功</p><button @click="uploadResult=null" class="text-sm text-blue-600 underline mt-1">继续上传</button></div></div>
         </div>
     </div>
 
@@ -434,7 +434,7 @@ const formatDate = (d) => d ? new Date(d).toLocaleDateString() : '未知日期'
           <div class="text-sm font-medium">{{ slideshowList.length }} 张图片轮播中</div>
           <button @click="showSlideshow = false" class="bg-white/10 hover:bg-white/20 p-2 rounded-full backdrop-blur-md transition-colors"><XMarkIcon class="w-6 h-6" /></button>
        </div>
-       <swiper :modules="modules" :slides-per-view="1" :space-between="30" :loop="slideshowList.length > 1" :effect="'fade'" :fade-effect="{ crossFade: true }" :autoplay="{ delay: 3000, disableOnInteraction: false, pauseOnMouseEnter: true }" :keyboard="{ enabled: true }" :pagination="{ clickable: true, dynamicBullets: true }" :navigation="true" class="w-full h-full"><swiper-slide v-for="img in slideshowList" :key="img.id" class="flex items-center justify-center bg-black"><div class="w-full h-full flex items-center justify-center p-4 md:p-10 relative"><img :src="`http://127.0.0.1:8000${img.file}`" class="max-w-full max-h-full object-contain shadow-2xl" loading="lazy" /><div class="absolute bottom-10 left-0 right-0 text-center pointer-events-none"><p class="text-white/90 text-lg font-bold drop-shadow-md">{{ img.title }}</p><p class="text-white/70 text-sm drop-shadow-md">{{ formatDate(img.shot_time) }}</p></div></div></swiper-slide></swiper>
+       <swiper :modules="modules" :slides-per-view="1" :space-between="30" :loop="slideshowList.length > 1" :effect="'fade'" :fade-effect="{ crossFade: true }" :autoplay="{ delay: 3000, disableOnInteraction: false, pauseOnMouseEnter: true }" :keyboard="{ enabled: true }" :pagination="{ clickable: true, dynamicBullets: true }" :navigation="true" class="w-full h-full"><swiper-slide v-for="img in slideshowList" :key="img.id" class="flex items-center justify-center bg-black"><div class="w-full h-full flex items-center justify-center p-4 md:p-10 relative"><img :src="`${img.file}`" class="max-w-full max-h-full object-contain shadow-2xl" loading="lazy" /><div class="absolute bottom-10 left-0 right-0 text-center pointer-events-none"><p class="text-white/90 text-lg font-bold drop-shadow-md">{{ img.title }}</p><p class="text-white/70 text-sm drop-shadow-md">{{ formatDate(img.shot_time) }}</p></div></div></swiper-slide></swiper>
     </div>
 
     <div v-if="selectedImage && !showSlideshow" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 backdrop-blur-sm">
@@ -446,7 +446,7 @@ const formatDate = (d) => d ? new Date(d).toLocaleDateString() : '未知日期'
           class="flex-1 flex items-center justify-center relative overflow-hidden bg-black/50 rounded-lg"
           :style="filterVars"
         >
-          <img ref="imageRef" :key="selectedImage.id + (isCropping ? '-crop' : '')" :src="`http://127.0.0.1:8000${selectedImage.file}?t=${new Date().getTime()}`" class="max-w-full max-h-[80vh] object-contain shadow-2xl transition-opacity duration-300" 
+          <img ref="imageRef" :key="selectedImage.id + (isCropping ? '-crop' : '')" :src="`${selectedImage.file}?t=${new Date().getTime()}`" class="max-w-full max-h-[80vh] object-contain shadow-2xl transition-opacity duration-300" 
                :class="{'opacity-100': !savingCrop, 'opacity-50': savingCrop}" />
           
           <div v-if="isCropping" class="absolute bottom-6 z-[80] flex flex-col items-center gap-4 w-full px-4">
