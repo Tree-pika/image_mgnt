@@ -5,14 +5,13 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from django.conf import settings
-from django.utils import timezone # 必须导入
+from django.utils import timezone 
 from .models import Image
-# 确保导入了 BulkDeleteIn
 from .schemas import ImageOut, UserSchema, ErrorSchema, TagIn, CropIn, BulkDeleteIn, PaginatedImageResponse
 import os
 import exifread
-import uuid # 必须导入
-from uuid import UUID # 类型提示用
+import uuid 
+from uuid import UUID # 类型提示
 from PIL import Image as PilImage, ImageEnhance
 from datetime import datetime
 from io import BytesIO
@@ -92,7 +91,7 @@ def parse_exif_date(date_str):
     try: return datetime.strptime(str(date_str), '%Y:%m:%d %H:%M:%S')
     except ValueError: return None
 
-# 1. 升级：分页获取图片列表
+# 1. 分页获取图片列表
 @router.get("/images", response=PaginatedImageResponse)
 def list_images(request, search: str = None, tag: str = None, trash: bool = False, page: int = 1, size: int = 12):
     if not request.user.is_authenticated:
@@ -182,7 +181,7 @@ def upload_image(request, file: UploadedFile = File(...)):
     image_obj.thumbnail.save(thumb_name, ContentFile(thumb_io.getvalue()), save=True)
     return image_obj
 
-# 3. 批量删除 (新增)
+# 3. 批量删除
 @router.post("/images/bulk_delete", auth=None)
 def bulk_delete_images(request, data: BulkDeleteIn):
     if not request.user.is_authenticated:
@@ -261,7 +260,7 @@ def remove_tag(request, image_id: UUID, tag_name: str):
     return img
 
 # 9. 图片裁剪 (版本控制：不覆盖原图)
-# 2. 升级：裁剪 + 色调调整 + 旋转
+# 裁剪 + 色调调整 + 旋转
 @router.post("/images/{image_id}/crop", response=ImageOut, auth=None)
 def crop_image(request, image_id: UUID, data: CropIn):
     if not request.user.is_authenticated:
@@ -280,14 +279,13 @@ def crop_image(request, image_id: UUID, data: CropIn):
         if pil_img.mode in ('RGBA', 'P') and fmt == 'JPEG':
             pil_img = pil_img.convert('RGB')
 
-        # B. 旋转 (注意：CropperJS 传来的 rotate 是顺时针，PIL rotate 是逆时针)
+        # B. 旋转
         # 如果前端传来的旋转是 90 (顺时针)，PIL 需要 -90
         if data.rotate != 0:
             pil_img = pil_img.rotate(-data.rotate, expand=True)
 
         # C. 裁剪
-        # 旋转后的画布尺寸可能变了，这里的 xy 应该是基于旋转后画布的坐标
-        # CropperJS 的 getData() 已经帮我们计算好了相对于当前视觉画布的坐标
+        # 旋转后的画布尺寸可能变了，这里的 xy 是基于旋转后画布的坐标
         box = (int(data.x), int(data.y), int(data.x + data.width), int(data.y + data.height))
         # 边界保护
         safe_box = (
@@ -298,7 +296,7 @@ def crop_image(request, image_id: UUID, data: CropIn):
         )
         cropped_img = pil_img.crop(safe_box)
         
-        # D. 色调调整 (ImageEnhance)
+        # D. 色调调整
         if data.brightness != 1.0:
             enhancer = ImageEnhance.Brightness(cropped_img)
             cropped_img = enhancer.enhance(data.brightness)
@@ -353,7 +351,7 @@ def crop_image(request, image_id: UUID, data: CropIn):
 
 api.add_router("", router)
 
-# 10. AI 智能分析接口
+# AI 智能分析接口
 @router.post("/images/{image_id}/analyze", response=ImageOut, auth=None)
 def ai_analyze_image(request, image_id: UUID):
     if not request.user.is_authenticated:
@@ -366,7 +364,6 @@ def ai_analyze_image(request, image_id: UUID):
     img.file.open()
     
     # 调用 AI 分析
-    # 注意：首次调用会触发模型下载，速度较慢
     detected_tags = analyze_image(img.file)
     
     # 合并标签 (去重)

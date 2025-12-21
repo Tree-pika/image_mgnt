@@ -19,7 +19,7 @@ import {
   TrashIcon, TagIcon, ScissorsIcon, CheckIcon,
   ArrowPathIcon, ExclamationTriangleIcon, PlusIcon, 
   ArrowUturnLeftIcon, AdjustmentsHorizontalIcon,
-  SparklesIcon // <--- AI:新增魔法棒图标
+  SparklesIcon // <--- AI魔法棒图标
 } from '@heroicons/vue/24/outline'
 import { CheckCircleIcon as CheckCircleIconSolid } from '@heroicons/vue/24/solid'
 
@@ -70,7 +70,7 @@ const pagination = ref({
 const isTrashMode = ref(false)
 const activeTags = ref([]) 
 
-// Step 8: AI 分析状态
+// AI 分析状态
 const isAnalyzing = ref(false)
 
 // --- 获取图片 (支持分页) ---
@@ -251,7 +251,7 @@ const quickAddTag = async (img) => {
   } catch(e) { alert("失败") }
 }
 
-// --- Step 8: AI 智能分析 ---
+// AI 智能分析
 const analyzeImage = async () => {
   if (isAnalyzing.value) return
   isAnalyzing.value = true
@@ -267,7 +267,7 @@ const analyzeImage = async () => {
   }
 }
 
-// --- 编辑功能增强 ---
+// 图片编辑功能
 const startCrop = () => { 
   isCropping.value = true;
   editParams.value = { rotate: 0, brightness: 1.0, contrast: 1.0, saturation: 1.0 }
@@ -307,6 +307,17 @@ const saveCrop = async () => {
   } catch (e) { alert("保存失败") } finally { savingCrop.value = false } 
 }
 const cancelCrop = () => { if (cropperInstance.value) cropperInstance.value.destroy(); isCropping.value = false; }
+
+//复制图片的ID
+const copyId = async () => {
+  if (!selectedImage.value) return
+  try {
+    await navigator.clipboard.writeText(selectedImage.value.id)
+    alert("ID 已复制: " + selectedImage.value.id)
+  } catch (err) {
+    console.error('复制失败', err)
+  }
+}
 
 // CSS 变量计算
 const filterVars = computed(() => {
@@ -453,7 +464,25 @@ const formatDate = (d) => d ? new Date(d).toLocaleDateString() : '未知日期'
         </div>
 
         <div class="w-full md:w-80 bg-gray-900/80 text-white p-6 rounded-2xl backdrop-blur-md h-fit md:self-center border border-white/10 flex flex-col gap-6">
-          <div><h2 class="text-lg font-bold mb-2 break-words">{{ selectedImage.title }}</h2><div class="space-y-1 text-sm text-gray-400"><p>日期: {{ formatDate(selectedImage.shot_time) }}</p><p>尺寸: {{ selectedImage.width }} x {{ selectedImage.height }}</p><p>大小: {{ (selectedImage.size / 1024).toFixed(1) }} KB</p><p v-if="selectedImage.deleted_at" class="text-red-400 font-bold mt-2">已在回收站</p></div></div>
+          <div><h2 class="text-lg font-bold mb-2 break-words">{{ selectedImage.title }}</h2><div class="space-y-1 text-sm text-gray-400">
+              <p>日期: {{ formatDate(selectedImage.shot_time) }}</p>
+              <p>尺寸: {{ selectedImage.width }} x {{ selectedImage.height }}</p>
+              <p>大小: {{ (selectedImage.size / 1024).toFixed(1) }} KB</p>
+              
+              <div class="flex items-center gap-2 group pt-1">
+                <p class="font-mono text-xs text-gray-500 truncate max-w-[150px]" title="Image ID">
+                  ID: {{ selectedImage.id }}
+                </p>
+                <button 
+                  @click="copyId" 
+                  class="text-blue-500 hover:text-blue-400 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  复制
+                </button>
+              </div>
+
+              <p v-if="selectedImage.deleted_at" class="text-red-400 font-bold mt-2">已在回收站</p>
+            </div></div>
           
           <div>
              <div class="flex items-center justify-between mb-2">
