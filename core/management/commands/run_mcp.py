@@ -10,7 +10,7 @@ from mcp.server.fastmcp import FastMCP
 from openai import OpenAI
 
 # ================= 配置区域 =================
-# 填入你的 Key
+# deepseek
 LLM_API_KEY = "sk-623ab52f77194040981c496cca52b1ed" 
 LLM_BASE_URL = "https://api.deepseek.com"
 LLM_MODEL = "deepseek-chat"
@@ -101,23 +101,25 @@ def extract_search_keywords(user_query: str):
 # --- 数据库操作 ---
 
 @sync_to_async
-def _search_images_orm(query: str, limit: int):
+def _authenticate_and_search(username, password, query, limit):
+    from django.contrib.auth import authenticate
     from core.models import Image
     
-    # 1. 提取关键词
+    # 1. 鉴权
+    user = authenticate(username=username, password=password)
+    if not user:
+        return None, "鉴权失败：用户名或密码错误", None, None
+
+    # 2. 提取关键词
     keywords, source = extract_search_keywords(query)
     
-    # 2. 数据库查询
-    qs = Image.objects.filter(deleted_at__isnull=True)
+    # 3. 查库 (强制限制 owner=user)
+    qs = Image.objects.filter(owner=user, deleted_at__isnull=True)
     
     if keywords:
         q_obj = Q()
         for kw in keywords:
-            # 只要命中任意一个扩展词即可
-            # tags__contains 是精确匹配数组中的某一项
-            # title__icontains 是模糊匹配标题
             q_obj |= Q(tags__contains=kw) | Q(title__icontains=kw) | Q(location__icontains=kw)
-        
         qs = qs.filter(q_obj)
     
     results = []
@@ -125,11 +127,10 @@ def _search_images_orm(query: str, limit: int):
         results.append({
             "id": str(img.id),
             "title": img.title,
-            "tags": img.tags, # 返回标签供调试
+            "tags": img.tags,
             "file_path": img.file.name
         })
-        
-    return results, keywords, source
+    return results, None, keywords, source
 
 @sync_to_async
 def _get_image_details_orm(image_id: str):
@@ -191,23 +192,29 @@ def _get_statistics_orm():
 # --- MCP 工具定义 ---
 
 @mcp.tool()
-async def search_gallery(query: str, limit: int = 5) -> str:
+async def search_gallery(username: str, password: str, query: str, limit: int = 5) -> str:
     """
-    智能搜索相册。
+    智能搜索用户的个人相册。
+    Args:
+        username: 用户名
+        password: 密码
+        query: 用户的自然语言描述 (例如: "帮我找几张风景照")
     """
-    clean_query = str(query).strip()
     
     # 获取结果 + 调试信息
-    results, used_keywords, source = await _search_images_orm(clean_query, limit)
+    results, error, used_keywords, source = await _authenticate_and_search(username, password, str(query).strip(), limit)
+    
+    if error:
+        return json.dumps({"error": error}, ensure_ascii=False)
     
     if not results:
         #
         return json.dumps({
             "status": "No Match",
-            "message": "未找到相关图片。",
+            "message": f"用户 {username} 的相册中未找到相关图片。",
             "debug_info": {
-                "original_query": clean_query,
-                "extraction_source": source,
+                "original_query": str(query).strip(),
+                "source": source,
                 "used_keywords": used_keywords, 
                 "hint": "请检查 used_keywords 是否包含你图片里实际有的英文标签。"
             }
