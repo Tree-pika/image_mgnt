@@ -1,5 +1,7 @@
 from transformers import pipeline
 from PIL import Image as PilImage
+import os
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 import io
 
 # 单例模式缓存模型，避免每次请求都重新加载
