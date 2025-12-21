@@ -8,6 +8,7 @@ from django.db.models import Q, Count
 from asgiref.sync import sync_to_async
 from mcp.server.fastmcp import FastMCP
 from openai import OpenAI
+import sys
 
 # ================= 配置区域 =================
 # deepseek
@@ -22,7 +23,7 @@ class Command(BaseCommand):
     help = "启动 MCP Server"
 
     def handle(self, *args, **options):
-        self.stdout.write(self.style.SUCCESS("正在启动 CloudGallery MCP Server..."))
+        self.stderr.write(self.style.SUCCESS("正在启动 CloudGallery MCP Server..."))
         jieba.initialize()
         mcp.run()
 
@@ -35,7 +36,7 @@ def extract_search_keywords(user_query: str):
     if not clean_query:
         return [], "Empty Query"
 
-    print(f"\n--- 处理查询: '{clean_query}' ---")
+    sys.stderr.write(f"\n--- 处理查询: '{clean_query}' ---")
 
     # === Level 1: DeepSeek ===
     if LLM_API_KEY and LLM_API_KEY.startswith("sk-"):
@@ -62,7 +63,7 @@ def extract_search_keywords(user_query: str):
             请只返回一个纯 JSON 字符串数组。
             """
             
-            print("🚀 [Level 1] 呼叫 DeepSeek 进行联想...")
+            sys.stderr.write("🚀 [Level 1] 呼叫 DeepSeek 进行联想...")
             response = client.chat.completions.create(
                 model=LLM_MODEL,
                 messages=[
@@ -80,14 +81,14 @@ def extract_search_keywords(user_query: str):
             keywords = json.loads(content)
             # 强制转小写
             keywords = [k.lower() for k in keywords]
-            print(f"✅ [Level 1] 扩展关键词: {keywords}")
+            sys.stderr.write(f"✅ [Level 1] 扩展关键词: {keywords}")
             return keywords, "DeepSeek LLM"
 
         except Exception as e:
-            print(f"⚠️ [Level 1] 失败: {e}")
+            sys.stderr.write(f"⚠️ [Level 1] 失败: {e}")
 
     # === Level 2: Jieba ===
-    print("🔄 [Level 2] Jieba 分词...")
+    sys.stderr.write("🔄 [Level 2] Jieba 分词...")
     stop_words = {"帮我", "查找", "搜索", "寻找", "找", "和", "跟", "有关", "相关", "的", "图片", "照片", "图", "一下", "那个", "几张"}
     words = jieba.cut(clean_query)
     keywords = [w.lower() for w in words if w.strip() and w not in stop_words]
