@@ -3,7 +3,8 @@ from django.contrib.auth.models import AbstractUser
 from django.contrib.auth import get_user_model
 from django.conf import settings
 import uuid
-
+from django.utils import timezone
+import datetime
 class User(AbstractUser):
     """
     自定义用户模型
@@ -11,50 +12,6 @@ class User(AbstractUser):
     修改点：将 email 设为唯一，方便后续做邮箱登录或找回密码。
     """
     email = models.EmailField(unique=True)
-
-#     class Meta:
-#         verbose_name = '用户'
-#         verbose_name_plural = '用户'
-
-#     def __str__(self):
-#         return self.username
-
-# class Image(models.Model):
-#     """
-#     图片主表
-#     """
-#     # 使用 UUID 作为主键，比自增数字 ID (1, 2, 3...) 更安全，很难被爬虫猜到
-#     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    
-#     # 关联用户：User 表的一对多关系。
-#     # on_delete=models.CASCADE 表示如果用户被删，他上传的图片也一并删除。
-#     # related_name='images' 让我们能用 user.images.all() 反向查询。
-#     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='images')
-    
-#     # 图片文件：自动按 "uploads/2025/11/" 这样的年月结构存储
-#     file = models.ImageField(upload_to='uploads/%Y/%m/')
-    
-#     title = models.CharField(max_length=100, blank=True)
-    
-#     # EXIF 信息：使用 MySQL 的 JSON 类型存储灵活的键值对
-#     exif_data = models.JSONField(default=dict, blank=True)
-    
-#     # 关键元数据索引（用于快速筛选）
-#     shot_time = models.DateTimeField(null=True, blank=True) # 拍摄时间
-#     location = models.CharField(max_length=255, blank=True) # 拍摄地点
-#     width = models.IntegerField(default=0)
-#     height = models.IntegerField(default=0)
-
-#     # AI 分析标签：存储 ["风景", "猫"] 这样的列表
-#     tags = models.JSONField(default=list, blank=True)
-    
-#     created_at = models.DateTimeField(auto_now_add=True)
-
-#     class Meta:
-#         ordering = ['-created_at'] # 默认按创建时间倒序排列
-        
-#     def __str__(self):
-#         return self.title or str(self.id)
 
 class Image(models.Model):
     """图片主表"""
@@ -87,3 +44,16 @@ class Image(models.Model):
 
     def __str__(self):
         return self.title or str(self.id)
+
+class EmailVerification(models.Model):
+    """
+    存储邮箱验证码的临时表
+    """
+    email = models.EmailField()
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    # 验证码有效期：5 分钟
+    def is_valid(self):
+        now = timezone.now()
+        return now - self.created_at < datetime.timedelta(minutes=5)

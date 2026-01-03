@@ -162,3 +162,12 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # 指定自定义用户模型 (App名.模型名)
 AUTH_USER_MODEL = 'core.User'
+
+# 邮件配置 (从环境变量读取，为了 Docker 安全)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.163.com') # 163 邮箱 SMTP 服务器
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 465))      # SSL 端口通常是 465
+EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'True') == 'True'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'jujubefish@163.com')  # 
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'EPTMx5R7sSEphJ2Y') # 授权码
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER

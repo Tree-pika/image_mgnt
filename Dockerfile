@@ -7,11 +7,12 @@ WORKDIR /app
 # 清华大学Debian 源
 # RUN sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list \
 #     && sed -i 's/security.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list
+# 
 RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list \
     && sed -i 's/security.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list
 
 # 安装系统依赖
-# 1. libgl1-mesa-glx, libglib2.0-0 是 OpenCV (处理图片) 需要的
+# 1. libgl1-mesa-glx, libglib2.0-0 是 OpenCV 需要的
 # 2. pkg-config, default-libmysqlclient-dev, build-essential 是 mysqlclient 编译需要的
 RUN apt-get update && apt-get install -y \
     libgl1-mesa-glx \

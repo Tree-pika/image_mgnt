@@ -8,13 +8,13 @@ services:
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: password  
-      MYSQL_DATABASE: imagedb        
+      MYSQL_DATABASE: imagedb     # 建库    
     volumes:
       - db_data:/var/lib/mysql       # 数据持久化，防止重启丢失数据
     ports:
       - "3307:3306"                  # 宿主机3307 -> 容器3306 
     healthcheck:
-      # 定期检查命令：尝试用 ping 检测 mysql 是否存活
+      # 用 ping 检测 mysql 是否存活
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
       interval: 5s    # 每隔5秒检查一次
       timeout: 5s     # 每次检查超时时间
@@ -37,6 +37,12 @@ services:
       - ALLOWED_HOSTS=*
       # 使用 HuggingFace 国内镜像站
       - HF_ENDPOINT=https://hf-mirror.com
+      # ✅ 新增邮件配置 (请填入你的真实信息)
+      - EMAIL_HOST=smtp.163.com
+      - EMAIL_PORT=465
+      - EMAIL_USE_SSL=True
+      - EMAIL_HOST_USER=jujubefish@163.com  # 163邮箱
+      - EMAIL_HOST_PASSWORD=EPTMx5R7sSEphJ2Y # 邮箱授权码
     # 指定阿里和114的DNS，防止容器解析不到域名
     dns:
       - 223.5.5.5

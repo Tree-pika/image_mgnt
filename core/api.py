@@ -22,7 +22,9 @@ from pydantic import EmailStr
 from typing import List
 import math
 from .ai import analyze_image
-
+import random
+from django.core.mail import send_mail
+from .models import EmailVerification
 
 # 实例化 API 对象
 api = NinjaAPI()
@@ -31,28 +33,88 @@ router = Router()
 User = get_user_model()
 
 # --- Schemas ---
+class SendCodeIn(Schema):
+    email: str
 
 class RegisterSchema(Schema):
     username: str
     password: str
     email: EmailStr 
+    code: str # 注册验证码
 
 class LoginSchema(Schema):
     username: str
     password: str
 
 # --- API Endpoints ---
+# 1. 发送验证码
+@api.post("/auth/send-code", response={200: dict, 500: ErrorSchema})
+def send_email_code(request, payload: SendCodeIn):
+    email = payload.email
+    
+    # 生成 6 位随机数字
+    code = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+    
+    # 存入数据库 (先清理该邮箱旧的验证码)
+    EmailVerification.objects.filter(email=email).delete()
+    EmailVerification.objects.create(email=email, code=code)
+    
+    # 发送邮件
+    try:
+        send_mail(
+            subject="[CloudGallery] 您的注册验证码",
+            message=f"欢迎注册 CloudGallery 云相册。\n您的验证码是：{code}\n该验证码 5 分钟内有效，请勿泄露给他人。",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            fail_silently=False,
+        )
+        return 200, {"message": "验证码已发送"}
+    except Exception as e:
+        print(f"Email Error: {e}")
+        return 500, {"message": f"邮件发送失败: {str(e)}"}
+
+
+# @api.post("/auth/register", response={200: UserSchema, 400: ErrorSchema})
+# def register(request, data: RegisterSchema):
+#     if len(data.password) < 6:
+#         return 400, {"message": "密码长度至少需要6位"}
+#     try:
+#         user = User.objects.create_user(
+#             username=data.username,
+#             password=data.password,
+#             email=data.email
+#         )
+#         return 200, user
+#     except IntegrityError:
+#         return 400, {"message": "用户名或邮箱已存在"}
 
 @api.post("/auth/register", response={200: UserSchema, 400: ErrorSchema})
 def register(request, data: RegisterSchema):
+    # A. 基础校验
     if len(data.password) < 6:
         return 400, {"message": "密码长度至少需要6位"}
+
+    # B. 验证码校验
+    verification = EmailVerification.objects.filter(email=data.email).order_by('-created_at').first()
+    
+    if not verification:
+        return 400, {"message": "请先获取验证码"}
+        
+    if verification.code != data.code:
+        return 400, {"message": "验证码错误"}
+        
+    if not verification.is_valid():
+        return 400, {"message": "验证码已过期，请重新获取"}
+
+    # C. 创建用户
     try:
         user = User.objects.create_user(
             username=data.username,
             password=data.password,
             email=data.email
         )
+        # 验证通过后删除验证码
+        verification.delete()
         return 200, user
     except IntegrityError:
         return 400, {"message": "用户名或邮箱已存在"}
