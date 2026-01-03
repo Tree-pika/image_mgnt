@@ -24,12 +24,12 @@
         
         <form v-if="!isRegister" @submit.prevent="handleLogin" class="space-y-6">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">账号 / 邮箱</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">用户名 / 邮箱</label>
             <input 
               v-model="loginForm.username" 
               type="text" 
               class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" 
-              placeholder="请输入用户名"
+              placeholder="请输入账号"
               required
             >
           </div>
